@@ -1,0 +1,1156 @@
+<!DOCTYPE html>
+<html lang="it" class="dark scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NexusCore ESP32-S3 — Hardware Project Package</title>
+    
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            50: '#eef2ff',
+                            500: '#6366f1',
+                            600: '#4f46e5',
+                            700: '#4338ca',
+                            900: '#312e81',
+                        },
+                        pcb: '#0e6231'
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'system-ui', '-apple-system', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'Fira Code', 'monospace']
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Google Fonts Inter & JetBrains Mono -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+    
+    <!-- Three.js & OrbitControls for 3D PCB Rendering -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    
+    <style>
+        body {
+            background-color: #050507;
+            color: #f3f4f6;
+            font-family: 'Inter', sans-serif;
+            overflow-x: hidden;
+        }
+
+        .glass-panel {
+            background: rgba(18, 18, 24, 0.75);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        .glass-card {
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .glass-card:hover {
+            background: rgba(255, 255, 255, 0.05);
+            border-color: rgba(99, 102, 241, 0.3);
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.6), 0 0 20px rgba(99, 102, 241, 0.15);
+            transform: translateY(-2px);
+        }
+
+        .glow-button {
+            position: relative;
+            background: linear-gradient(135deg, #4f46e5 0%, #6366f1 100%);
+            box-shadow: 0 0 25px rgba(99, 102, 241, 0.4);
+            transition: all 0.25s ease;
+        }
+
+        .glow-button:hover {
+            box-shadow: 0 0 35px rgba(99, 102, 241, 0.65);
+            transform: scale(1.02);
+        }
+
+        .glow-button:active {
+            transform: scale(0.98);
+        }
+
+        .bg-grid-pattern {
+            background-size: 40px 40px;
+            background-image: linear-gradient(to right, rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+                              linear-gradient(to bottom, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+        }
+
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #050507;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #27272a;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #3f3f46;
+        }
+    </style>
+</head>
+<body class="bg-grid-pattern min-h-screen text-slate-200 antialiased selection:bg-brand-500 selection:text-white">
+
+    <!-- Navigation Header -->
+    <header class="fixed top-0 left-0 right-0 z-40 glass-panel border-b border-white/10">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+            <div class="flex items-center space-x-3">
+                <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-brand-600 to-indigo-400 flex items-center justify-center text-white shadow-lg shadow-brand-500/30">
+                    <i class="fa-solid fa-microchip text-lg"></i>
+                </div>
+                <span class="font-bold text-lg tracking-tight text-white">NexusCore <span class="text-xs px-2 py-0.5 rounded-full bg-brand-500/20 text-brand-400 border border-brand-500/30">ESP32-S3</span></span>
+            </div>
+
+            <nav class="hidden md:flex items-center space-x-8 text-sm font-medium text-slate-400">
+                <a href="#overview" class="hover:text-white transition-colors">Panoramica</a>
+                <a href="#viewer3d" class="hover:text-white transition-colors">3D Interactive</a>
+                <a href="#features" class="hover:text-white transition-colors">Caratteristiche</a>
+                <a href="#applications" class="hover:text-white transition-colors">Applicazioni</a>
+                <a href="#package" class="hover:text-white transition-colors">Pacchetto File</a>
+                <a href="#code" class="hover:text-white transition-colors">Firmware PWM</a>
+            </nav>
+
+            <div class="flex items-center space-x-3">
+                <!-- Admin Config Trigger -->
+                <button id="admin-trigger-btn" title="Configura Link Store (Admin)" class="w-9 h-9 rounded-lg bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white transition-colors flex items-center justify-center border border-white/10">
+                    <i class="fa-solid fa-gear text-sm"></i>
+                </button>
+                
+                <!-- Main Header CTA -->
+                <a id="nav-buy-btn" href="#" target="_blank" rel="noopener" class="glow-button px-4 py-2 rounded-lg font-semibold text-sm text-white flex items-center space-x-2">
+                    <span>Acquista — €9,99</span>
+                    <i class="fa-solid fa-arrow-right text-xs"></i>
+                </a>
+            </div>
+        </div>
+    </header>
+
+    <!-- Admin Settings Modal -->
+    <div id="admin-modal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md hidden transition-opacity">
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-md w-full p-6 shadow-2xl relative">
+            <button id="close-modal-btn" class="absolute top-4 right-4 text-slate-400 hover:text-white">
+                <i class="fa-solid fa-xmark text-lg"></i>
+            </button>
+            
+            <div class="flex items-center space-x-3 mb-4">
+                <div class="w-10 h-10 rounded-lg bg-brand-500/20 text-brand-400 flex items-center justify-center border border-brand-500/30">
+                    <i class="fa-solid fa-link text-lg"></i>
+                </div>
+                <div>
+                    <h3 class="text-lg font-bold text-white">Configurazione Gumroad</h3>
+                    <p class="text-xs text-slate-400">Inserisci il PIN di sicurezza per modificare il link.</p>
+                </div>
+            </div>
+
+            <!-- Auth Form -->
+            <div id="pin-section" class="space-y-4">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-2">PIN Admin Security</label>
+                    <input type="password" id="pin-input" placeholder="XXXXXX" maxlength="6" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-center text-xl font-mono tracking-widest text-white focus:outline-none focus:border-brand-500 transition-colors">
+                </div>
+                <p id="pin-error" class="text-red-400 text-xs hidden flex items-center space-x-1">
+                    <i class="fa-solid fa-circle-exclamation"></i>
+                    <span>PIN errato. Riprova.</span>
+                </p>
+                <button id="unlock-btn" class="w-full py-3 bg-brand-600 hover:bg-brand-500 text-white rounded-xl font-semibold text-sm transition-colors">
+                    Sblocca Impostazioni
+                </button>
+            </div>
+
+            <!-- Settings Form (Hidden initially) -->
+            <div id="settings-section" class="space-y-4 hidden">
+                <div class="p-3 bg-green-500/10 border border-green-500/30 rounded-xl text-xs text-green-400 flex items-center space-x-2">
+                    <i class="fa-solid fa-check-circle"></i>
+                    <span>PIN autenticato con successo.</span>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-2">Gumroad Product Link URL</label>
+                    <input type="url" id="gumroad-url-input" placeholder="https://gumroad.com/l/tuoprodotto" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-sm font-mono text-white focus:outline-none focus:border-brand-500 transition-colors">
+                </div>
+                <div class="flex space-x-3 pt-2">
+                    <button id="save-url-btn" class="flex-1 py-2.5 bg-brand-600 hover:bg-brand-500 text-white rounded-xl font-semibold text-sm transition-colors">
+                        Salva Nuovo Link
+                    </button>
+                    <button id="reset-url-btn" class="px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl font-medium text-sm transition-colors">
+                        Reset
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Hero Section -->
+    <section id="overview" class="pt-32 pb-20 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto relative overflow-hidden">
+        <div class="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[350px] bg-brand-600/20 blur-[130px] rounded-full pointer-events-none"></div>
+
+        <div class="text-center max-w-3xl mx-auto space-y-6 relative z-10">
+            <div class="inline-flex items-center space-x-2 px-3.5 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-xs font-semibold text-emerald-400 backdrop-blur-md">
+                <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                <span>OFFERTA LANCIO -33% — Download Immediato</span>
+            </div>
+
+            <h1 class="text-4xl sm:text-6xl font-extrabold tracking-tight text-white leading-none">
+                NexusCore <br>
+                <span class="bg-clip-text text-transparent bg-gradient-to-r from-brand-400 via-indigo-300 to-purple-400">ESP32-S3 Micro Board</span>
+            </h1>
+
+            <p class="text-slate-400 text-base sm:text-lg max-w-2xl mx-auto font-normal leading-relaxed">
+                Il pacchetto hardware completo per la scheda di sviluppo ad alte prestazioni basata su ESP32-S3. Compatta, con porta USB-C nativa, LED RGB analogico PWM (3 resistenze R1/R3/R5) e singola fila di pin header per breadboard.
+            </p>
+
+            <!-- Pricing Banner -->
+            <div class="flex items-center justify-center space-x-3 pt-2">
+                <span class="line-through text-slate-500 text-2xl font-medium">€14,99</span>
+                <span class="text-4xl font-extrabold text-white tracking-tight">€9,99</span>
+                <span class="px-2.5 py-0.5 rounded-md bg-brand-500/20 text-brand-300 border border-brand-500/30 text-xs font-bold uppercase tracking-wider">Risparmi il 33%</span>
+            </div>
+
+            <div class="flex flex-col sm:flex-row items-center justify-center gap-4 pt-4">
+                <a id="hero-buy-btn" href="#" target="_blank" rel="noopener" class="glow-button w-full sm:w-auto px-8 py-3.5 rounded-xl font-bold text-base text-white flex items-center justify-center space-x-3">
+                    <i class="fa-solid fa-download"></i>
+                    <span>Scarica Pacchetto Completo — €9,99</span>
+                </a>
+                <a href="#viewer3d" class="w-full sm:w-auto px-6 py-3.5 rounded-xl font-semibold text-sm text-slate-300 hover:text-white glass-card flex items-center justify-center space-x-2">
+                    <i class="fa-solid fa-cube text-brand-400"></i>
+                    <span>Esplora Modello 3D</span>
+                </a>
+            </div>
+
+            <!-- Fast Specs Chips -->
+            <div class="pt-8 grid grid-cols-2 md:grid-cols-4 gap-3 text-left">
+                <div class="glass-panel p-3.5 rounded-xl border border-white/5">
+                    <p class="text-xs text-slate-500 uppercase tracking-wider font-semibold">MCU Core</p>
+                    <p class="text-sm font-bold text-white mt-0.5">ESP32-S3 Dual-Core</p>
+                </div>
+                <div class="glass-panel p-3.5 rounded-xl border border-white/5">
+                    <p class="text-xs text-slate-500 uppercase tracking-wider font-semibold">Interfaccia</p>
+                    <p class="text-sm font-bold text-white mt-0.5">USB-C Nativa High-Speed</p>
+                </div>
+                <div class="glass-panel p-3.5 rounded-xl border border-white/5">
+                    <p class="text-xs text-slate-500 uppercase tracking-wider font-semibold">Pinout Top</p>
+                    <p class="text-sm font-bold text-white mt-0.5">Singola Fila Header Pin</p>
+                </div>
+                <div class="glass-panel p-3.5 rounded-xl border border-white/5">
+                    <p class="text-xs text-slate-500 uppercase tracking-wider font-semibold">LED Onboard</p>
+                    <p class="text-sm font-bold text-white mt-0.5">RGB PWM 3 Canali</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 3D Interactive PCB Viewer Section -->
+    <section id="viewer3d" class="py-16 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
+        <div class="text-center mb-8">
+            <h2 class="text-2xl sm:text-3xl font-bold text-white tracking-tight">Anteprima 3D Interattiva della Scheda PCB</h2>
+            <p class="text-slate-400 text-sm mt-1">Ruota, ingrandisci ed esamina i dettagli costruttivi della scheda in tempo reale.</p>
+        </div>
+
+        <div class="glass-panel rounded-3xl p-4 md:p-6 border border-white/10 relative overflow-hidden shadow-2xl">
+            <!-- Canvas Wrapper -->
+            <div class="relative w-full h-[450px] sm:h-[550px] rounded-2xl bg-gradient-to-b from-slate-950 to-black overflow-hidden border border-white/5">
+                <canvas id="pcb-canvas" class="w-full h-full cursor-grab active:cursor-grabbing"></canvas>
+
+                <!-- Floating Canvas Controls Header -->
+                <div class="absolute top-4 left-4 right-4 flex flex-wrap items-center justify-between gap-3 pointer-events-none">
+                    <div class="glass-panel px-3 py-1.5 rounded-lg border border-white/10 pointer-events-auto flex items-center space-x-2">
+                        <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 shadow-sm shadow-emerald-500/50"></span>
+                        <span class="text-xs font-mono font-medium text-slate-300">PCB Layer: Solder Mask Verde SMT + Tracce Scure</span>
+                    </div>
+
+                    <!-- Camera View Presets -->
+                    <div class="glass-panel p-1 rounded-xl border border-white/10 pointer-events-auto flex items-center space-x-1">
+                        <button id="view-top" class="px-2.5 py-1 rounded-lg text-xs font-medium text-slate-300 hover:text-white hover:bg-white/10 transition-colors">Vista Top</button>
+                        <button id="view-usb" class="px-2.5 py-1 rounded-lg text-xs font-medium text-slate-300 hover:text-white hover:bg-white/10 transition-colors">Porta USB-C</button>
+                        <button id="view-chip" class="px-2.5 py-1 rounded-lg text-xs font-medium text-slate-300 hover:text-white hover:bg-white/10 transition-colors">Chip ESP32-S3</button>
+                        <button id="view-led" class="px-2.5 py-1 rounded-lg text-xs font-medium text-slate-300 hover:text-white hover:bg-white/10 transition-colors">LED RGB & Resistenze</button>
+                        <button id="toggle-rotate" class="px-2.5 py-1 rounded-lg text-xs font-medium text-brand-400 hover:bg-brand-500/20 transition-colors">
+                            <i class="fa-solid fa-arrows-spin mr-1"></i>Auto-Rotate
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Floating Interactive RGB LED Controller -->
+                <div class="absolute bottom-4 left-4 right-4 sm:right-auto glass-panel p-4 rounded-2xl border border-white/10 space-y-3 pointer-events-auto max-w-sm">
+                    <div class="flex items-center justify-between">
+                        <span class="text-xs font-bold text-white uppercase tracking-wider flex items-center space-x-1.5">
+                            <i class="fa-solid fa-lightbulb text-amber-400"></i>
+                            <span>Test Simulazione LED PWM (3-Pin)</span>
+                        </span>
+                        <span id="led-color-code" class="text-[10px] font-mono text-slate-400 uppercase">#FF0055</span>
+                    </div>
+
+                    <!-- LED Preset Colors -->
+                    <div class="flex items-center space-x-2">
+                        <button class="led-preset-btn w-6 h-6 rounded-full bg-red-500 ring-2 ring-transparent focus:ring-white transition-all" data-color="#ff0055"></button>
+                        <button class="led-preset-btn w-6 h-6 rounded-full bg-emerald-400 ring-2 ring-transparent focus:ring-white transition-all" data-color="#00ff88"></button>
+                        <button class="led-preset-btn w-6 h-6 rounded-full bg-cyan-400 ring-2 ring-transparent focus:ring-white transition-all" data-color="#00d8ff"></button>
+                        <button class="led-preset-btn w-6 h-6 rounded-full bg-indigo-500 ring-2 ring-transparent focus:ring-white transition-all" data-color="#6366f1"></button>
+                        <button class="led-preset-btn w-6 h-6 rounded-full bg-amber-400 ring-2 ring-transparent focus:ring-white transition-all" data-color="#ffb700"></button>
+                        
+                        <input type="color" id="led-color-picker" value="#ff0055" class="w-7 h-7 rounded-full bg-transparent border-0 cursor-pointer p-0">
+                    </div>
+
+                    <!-- Brightness Intensity Slider -->
+                    <div class="space-y-1">
+                        <div class="flex justify-between text-[11px] text-slate-400">
+                            <span>Luminosità Canali PWM</span>
+                            <span id="led-intensity-val">100%</span>
+                        </div>
+                        <input type="range" id="led-intensity-slider" min="0" max="2" step="0.1" value="1" class="w-full h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-brand-500">
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Features Bento Grid Section -->
+    <section id="features" class="py-16 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
+        <div class="text-center max-w-2xl mx-auto mb-12 space-y-2">
+            <h2 class="text-3xl font-extrabold text-white tracking-tight">Progettazione Hardware Ottimizzata</h2>
+            <p class="text-slate-400 text-sm">Architettura essenziale, senza fronzoli inutili, focalizzata sulla massima usabilità in laboratorio.</p>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <!-- Feature Card 1: Top Pin Header Row (Icon fixed with fa-microchip) -->
+            <div class="glass-card p-6 rounded-2xl space-y-4">
+                <div class="w-11 h-11 rounded-xl bg-indigo-500/10 text-indigo-400 flex items-center justify-center border border-indigo-500/20 text-xl">
+                    <i class="fa-solid fa-microchip"></i>
+                </div>
+                <h3 class="text-lg font-bold text-white">Singola Fila Superior di Pin Header</h3>
+                <p class="text-slate-400 text-sm leading-relaxed">
+                    Disposizione razionale e compatta con una singola linea di pin posizionata lungo il bordo superiore, ideale per l'inserimento diretto su breadboard e per preservare spazio sui lati.
+                </p>
+            </div>
+
+            <!-- Feature Card 2: Native USB-C -->
+            <div class="glass-card p-6 rounded-2xl space-y-4">
+                <div class="w-11 h-11 rounded-xl bg-blue-500/10 text-blue-400 flex items-center justify-center border border-blue-500/20 text-xl">
+                    <i class="fa-solid fa-plug"></i>
+                </div>
+                <h3 class="text-lg font-bold text-white">USB-C Nativo Direct-Flashing</h3>
+                <p class="text-slate-400 text-sm leading-relaxed">
+                    Connettore USB-C sporgente dal bordo, collegato ai pin D+/D- del modulo ESP32-S3 per alimentazione e debugging CDC/HID nativo senza chip converter esterni.
+                </p>
+            </div>
+
+            <!-- Feature Card 3: Programmable 3-Pin RGB LED -->
+            <div class="glass-card p-6 rounded-2xl space-y-4">
+                <div class="w-11 h-11 rounded-xl bg-purple-500/10 text-purple-400 flex items-center justify-center border border-purple-500/20 text-xl">
+                    <i class="fa-solid fa-lightbulb"></i>
+                </div>
+                <h3 class="text-lg font-bold text-white">LED RGB Analogico PWM (R1, R3, R5)</h3>
+                <p class="text-slate-400 text-sm leading-relaxed">
+                    LED RGB a cupola con 3 resistenze SMD dedicate per ciascun canale di colore. Pilotabile tramite PWM a 3 pin per miscelazione di colori fluida e reattiva.
+                </p>
+            </div>
+
+            <!-- Feature Card 4: BOOT and RESET Micro Buttons -->
+            <div class="glass-card p-6 rounded-2xl space-y-4">
+                <div class="w-11 h-11 rounded-xl bg-amber-500/10 text-amber-400 flex items-center justify-center border border-amber-500/20 text-xl">
+                    <i class="fa-solid fa-toggle-on"></i>
+                </div>
+                <h3 class="text-lg font-bold text-white">Pulsanti Tattili BOOT & RESET</h3>
+                <p class="text-slate-400 text-sm leading-relaxed">
+                    Micro-pulsanti tattili dedicati per l'accesso immediato alla modalità Bootloader (GPIO0) e Reset manuale senza dover ponticellare i pin esterni.
+                </p>
+            </div>
+
+            <!-- Feature Card 5: Form Factor & No LiPo Charger -->
+            <div class="glass-card p-6 rounded-2xl space-y-4 md:col-span-2">
+                <div class="flex items-start justify-between">
+                    <div class="w-11 h-11 rounded-xl bg-emerald-500/10 text-emerald-400 flex items-center justify-center border border-emerald-500/20 text-xl">
+                        <i class="fa-solid fa-bolt"></i>
+                    </div>
+                    <span class="text-xs px-2.5 py-1 rounded-full bg-slate-800 text-slate-300 border border-slate-700">Clean Power Path</span>
+                </div>
+                <h3 class="text-lg font-bold text-white">Design Semplificato senza Circuito LiPo</h3>
+                <p class="text-slate-400 text-sm leading-relaxed">
+                    Nessun circuito di ricarica batterie integrato per minimizzare l'impronta sul PCB, evitare surriscaldamenti residui ed eliminare componenti superflui. Alimentazione diretta pulita tramite USB 5V regolata con LDO a basso dropout per il core 3.3V.
+                </p>
+            </div>
+        </div>
+    </section>
+
+    <!-- NEW SECTION: Applicazioni Possibili -->
+    <section id="applications" class="py-16 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto border-t border-white/5">
+        <div class="text-center max-w-3xl mx-auto mb-12 space-y-3">
+            <div class="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-brand-500/10 border border-brand-500/30 text-xs font-semibold text-brand-400">
+                <i class="fa-solid fa-rocket"></i>
+                <span>Versatilità Senza Limiti</span>
+            </div>
+            <h2 class="text-3xl font-extrabold text-white tracking-tight">Cosa puoi realizzare con NexusCore ESP32-S3</h2>
+            <p class="text-slate-400 text-sm">
+                Grazie alla combinazione di potenza dual-core, USB-C nativa e dimensioni ultracompatte, NexusCore è la base ideale per un'ampia gamma di progetti.
+            </p>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <!-- App Card 1: Home Assistant Node -->
+            <div class="glass-card p-6 rounded-2xl space-y-3 relative overflow-hidden group">
+                <div class="w-10 h-10 rounded-xl bg-blue-500/10 text-blue-400 flex items-center justify-center border border-blue-500/20 text-lg">
+                    <i class="fa-solid fa-house-signal"></i>
+                </div>
+                <h3 class="text-lg font-bold text-white group-hover:text-brand-300 transition-colors">Domotica & Home Assistant (ESPHome)</h3>
+                <p class="text-slate-400 text-xs leading-relaxed">
+                    Perfetta come nodo sensore Wi-Fi/BLE in ESPHome. Il LED RGB può indicare visivamente lo stato della casa, allarmi o qualità dell'aria.
+                </p>
+            </div>
+
+            <!-- App Card 2: USB-C MacroPad & HID -->
+            <div class="glass-card p-6 rounded-2xl space-y-3 relative overflow-hidden group">
+                <div class="w-10 h-10 rounded-xl bg-purple-500/10 text-purple-400 flex items-center justify-center border border-purple-500/20 text-lg">
+                    <i class="fa-solid fa-keyboard"></i>
+                </div>
+                <h3 class="text-lg font-bold text-white group-hover:text-brand-300 transition-colors">Dispositivo USB HID & MacroPad</h3>
+                <p class="text-slate-400 text-xs leading-relaxed">
+                    Sfrutta il controller USB-C nativo per emulare tastiere, mouse o controller di scelta rapida per Stream Deck, autenticazione hardware o automazioni PC.
+                </p>
+            </div>
+
+            <!-- App Card 3: Desktop RGB Notifier -->
+            <div class="glass-card p-6 rounded-2xl space-y-3 relative overflow-hidden group">
+                <div class="w-10 h-10 rounded-xl bg-amber-500/10 text-amber-400 flex items-center justify-center border border-amber-500/20 text-lg">
+                    <i class="fa-solid fa-bell"></i>
+                </div>
+                <h3 class="text-lg font-bold text-white group-hover:text-brand-300 transition-colors">Notificatore Desktop RGB</h3>
+                <p class="text-slate-400 text-xs leading-relaxed">
+                    Crea una spia da scrivania programmabile per monitorare server, notifiche Slack/GitHub, variazioni di prezzo crypto o allerte meteo in tempo reale.
+                </p>
+            </div>
+
+            <!-- App Card 4: Edge AI / TinyML Node -->
+            <div class="glass-card p-6 rounded-2xl space-y-3 relative overflow-hidden group">
+                <div class="w-10 h-10 rounded-xl bg-emerald-500/10 text-emerald-400 flex items-center justify-center border border-emerald-500/20 text-lg">
+                    <i class="fa-solid fa-brain"></i>
+                </div>
+                <h3 class="text-lg font-bold text-white group-hover:text-brand-300 transition-colors">Edge AI & TinyML Engine</h3>
+                <p class="text-slate-400 text-xs leading-relaxed">
+                    Utilizza l'accelerazione vettoriale del processore dual-core ESP32-S3 per eseguire modelli di riconoscimento vocale, analisi vibrazioni o keyword spotting locale.
+                </p>
+            </div>
+
+            <!-- App Card 5: Compact 3D Cases & Wearables -->
+            <div class="glass-card p-6 rounded-2xl space-y-3 relative overflow-hidden group">
+                <div class="w-10 h-10 rounded-xl bg-rose-500/10 text-rose-400 flex items-center justify-center border border-rose-500/20 text-lg">
+                    <i class="fa-solid fa-box font-normal"></i>
+                </div>
+                <h3 class="text-lg font-bold text-white group-hover:text-brand-300 transition-colors">IoT & Enclosure Stampati in 3D</h3>
+                <p class="text-slate-400 text-xs leading-relaxed">
+                    Il layout stretto con singola fila di pin rende semplicissima l'integrazione dentro case custom in stampa 3D, dongle tascabili o prototipi indossabili.
+                </p>
+            </div>
+
+            <!-- App Card 6: Wi-Fi Mesh & BLE Gateway -->
+            <div class="glass-card p-6 rounded-2xl space-y-3 relative overflow-hidden group">
+                <div class="w-10 h-10 rounded-xl bg-cyan-500/10 text-cyan-400 flex items-center justify-center border border-cyan-500/20 text-lg">
+                    <i class="fa-solid fa-network-wired"></i>
+                </div>
+                <h3 class="text-lg font-bold text-white group-hover:text-brand-300 transition-colors">Gateway BLE 5.0 & Mesh Wi-Fi</h3>
+                <p class="text-slate-400 text-xs leading-relaxed">
+                    Crea bridge di comunicazione wireless tra sensori Bluetooth a basso consumo e reti centralizzate MQTT o cloud.
+                </p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Included Package Breakdown Section -->
+    <section id="package" class="py-16 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
+        <div class="glass-panel rounded-3xl p-6 sm:p-10 border border-white/10 relative overflow-hidden">
+            <div class="max-w-3xl">
+                <div class="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-brand-500/10 border border-brand-500/30 text-xs font-semibold text-brand-400 mb-4">
+                    <i class="fa-solid fa-box-archive"></i>
+                    <span>Download Immediato in Archivio ZIP</span>
+                </div>
+                <h2 class="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">Cosa è incluso nel pacchetto:</h2>
+                <p class="text-slate-400 text-sm mt-2">
+                    Tutto il necessario per la produzione fisica, l'ordinativo SMT e la documentazione del circuito.
+                </p>
+
+                <!-- Checklist Items (Strictly NO KiCad) -->
+                <div class="mt-8 space-y-4">
+                    <div class="flex items-start space-x-3.5 p-3.5 rounded-xl bg-white/5 border border-white/5 hover:border-brand-500/30 transition-colors">
+                        <div class="w-6 h-6 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center flex-shrink-0 mt-0.5">
+                            <i class="fa-solid fa-check text-xs"></i>
+                        </div>
+                        <div>
+                            <span class="font-bold text-white text-sm">Gerber RS-274X Archive (.ZIP)</span>
+                            <p class="text-xs text-slate-400 mt-0.5">File Gerber completi pronti per l'invio in fabbricazione (JLCPCB, PCBWay, Eurocircuits).</p>
+                        </div>
+                    </div>
+
+                    <div class="flex items-start space-x-3.5 p-3.5 rounded-xl bg-white/5 border border-white/5 hover:border-brand-500/30 transition-colors">
+                        <div class="w-6 h-6 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center flex-shrink-0 mt-0.5">
+                            <i class="fa-solid fa-check text-xs"></i>
+                        </div>
+                        <div>
+                            <span class="font-bold text-white text-sm">Documentazione Schematico e Layout in PDF</span>
+                            <p class="text-xs text-slate-400 mt-0.5">Schematici e layout multilayer esportati in formato vettoriale PDF ad alta definizione.</p>
+                        </div>
+                    </div>
+
+                    <div class="flex items-start space-x-3.5 p-3.5 rounded-xl bg-white/5 border border-white/5 hover:border-brand-500/30 transition-colors">
+                        <div class="w-6 h-6 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center flex-shrink-0 mt-0.5">
+                            <i class="fa-solid fa-check text-xs"></i>
+                        </div>
+                        <div>
+                            <span class="font-bold text-white text-sm">Bill of Materials (BOM) in formato CSV / Excel</span>
+                            <p class="text-xs text-slate-400 mt-0.5">Elenco esaustivo dei componenti con codici LSC/JLCPCB, footprint e valori esatti per R1, R3, R5.</p>
+                        </div>
+                    </div>
+
+                    <div class="flex items-start space-x-3.5 p-3.5 rounded-xl bg-white/5 border border-white/5 hover:border-brand-500/30 transition-colors">
+                        <div class="w-6 h-6 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center flex-shrink-0 mt-0.5">
+                            <i class="fa-solid fa-check text-xs"></i>
+                        </div>
+                        <div>
+                            <span class="font-bold text-white text-sm">Pick and Place / Component Placement List (PNP / CPL / Centroid)</span>
+                            <p class="text-xs text-slate-400 mt-0.5">Coordinate di posizionamento X/Y e rotazione per l'assemblaggio automatizzato SMT.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Starter Firmware Code Section (UPDATED 3-CHANNEL PWM FOR ANALOG RGB LED) -->
+    <section id="code" class="py-16 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
+            <div class="lg:col-span-5 space-y-4">
+                <div class="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-indigo-500/10 text-indigo-400 text-xs font-semibold border border-indigo-500/20">
+                    <i class="fa-solid fa-code"></i>
+                    <span>Arduino / ESP-IDF Native PWM</span>
+                </div>
+                <h2 class="text-3xl font-extrabold text-white tracking-tight">Codice C++ PWM (3-Pin RGB + Resistenze R1, R3, R5)</h2>
+                <p class="text-slate-400 text-sm leading-relaxed">
+                    Esempio di codice aggiornato per il LED RGB analogico con 3 resistenze dedicate. Utilizza la gestione PWM nativa tramite <code class="font-mono text-brand-300">analogWrite()</code> o <code class="font-mono text-brand-300">ledcWrite()</code>.
+                </p>
+                <div class="space-y-2 pt-2 text-xs text-slate-400">
+                    <div class="flex items-center space-x-2">
+                        <i class="fa-solid fa-circle-check text-brand-400"></i>
+                        <span>Pilotaggio diretto PWM dei 3 canali di colore (Rosso, Verde, Blu)</span>
+                    </div>
+                    <div class="flex items-center space-x-2">
+                        <i class="fa-solid fa-circle-check text-brand-400"></i>
+                        <span>Lettura dinamica del pulsante BOOT (GPIO0) per cambio colore</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Code Window -->
+            <div class="lg:col-span-7 glass-panel rounded-2xl border border-white/10 overflow-hidden shadow-2xl">
+                <div class="bg-slate-950/80 px-4 py-3 border-b border-white/10 flex items-center justify-between">
+                    <div class="flex items-center space-x-2">
+                        <span class="w-3 h-3 rounded-full bg-red-500/80"></span>
+                        <span class="w-3 h-3 rounded-full bg-yellow-500/80"></span>
+                        <span class="w-3 h-3 rounded-full bg-green-500/80"></span>
+                        <span class="ml-2 text-xs font-mono text-slate-400">NexusCore_PWM_RGB.ino</span>
+                    </div>
+                    <button id="copy-code-btn" class="px-2.5 py-1 rounded bg-white/5 hover:bg-white/10 text-xs text-slate-300 flex items-center space-x-1.5 transition-colors border border-white/10">
+                        <i class="fa-regular fa-copy"></i>
+                        <span id="copy-text">Copia Codice</span>
+                    </button>
+                </div>
+
+                <div class="p-4 bg-black/90 font-mono text-xs text-slate-300 overflow-x-auto leading-relaxed">
+<pre><code id="code-snippet" class="language-cpp"><span class="text-slate-500">// Mappatura Pin PWM per LED RGB Analogico 4-Pin (con resistenze R1, R3, R5)</span>
+<span class="text-purple-400">#define</span> LED_R_PIN   <span class="text-amber-300">4</span>    <span class="text-slate-500">// GPIO Canale Rosso (attraverso R1)</span>
+<span class="text-purple-400">#define</span> LED_G_PIN   <span class="text-amber-300">5</span>    <span class="text-slate-500">// GPIO Canale Verde (attraverso R3)</span>
+<span class="text-purple-400">#define</span> LED_B_PIN   <span class="text-amber-300">6</span>    <span class="text-slate-500">// GPIO Canale Blu (attraverso R5)</span>
+<span class="text-purple-400">#define</span> BOOT_BTN    <span class="text-amber-300">0</span>    <span class="text-slate-500">// GPIO Pulsante BOOT Tattile</span>
+
+<span class="text-slate-500">// Impostare a true se il LED è a Anodo Comune, false se a Catodo Comune</span>
+<span class="text-purple-400">const</span> <span class="text-blue-400">bool</span> COMMON_ANODE = <span class="text-purple-400">false</span>;
+
+<span class="text-blue-400">void</span> <span class="text-yellow-300">setColor</span>(<span class="text-blue-400">uint8_t</span> r, <span class="text-blue-400">uint8_t</span> g, <span class="text-blue-400">uint8_t</span> b) {
+  <span class="text-purple-400">if</span> (COMMON_ANODE) {
+    r = <span class="text-amber-300">255</span> - r;
+    g = <span class="text-amber-300">255</span> - g;
+    b = <span class="text-amber-300">255</span> - b;
+  }
+  analogWrite(LED_R_PIN, r);
+  analogWrite(LED_G_PIN, g);
+  analogWrite(LED_B_PIN, b);
+}
+
+<span class="text-blue-400">void</span> <span class="text-yellow-300">setup</span>() {
+  Serial.<span class="text-yellow-300">begin</span>(<span class="text-amber-300">115200</span>);
+  pinMode(BOOT_BTN, INPUT_PULLUP);
+  
+  pinMode(LED_R_PIN, OUTPUT);
+  pinMode(LED_G_PIN, OUTPUT);
+  pinMode(LED_B_PIN, OUTPUT);
+  
+  <span class="text-slate-500">// Test Iniziale LED RGB (Sequenza R-G-B)</span>
+  <span class="text-yellow-300">setColor</span>(<span class="text-amber-300">255</span>, <span class="text-amber-300">0</span>, <span class="text-amber-300">0</span>); delay(<span class="text-amber-300">300</span>);
+  <span class="text-yellow-300">setColor</span>(<span class="text-amber-300">0</span>, <span class="text-amber-300">255</span>, <span class="text-amber-300">0</span>); delay(<span class="text-amber-300">300</span>);
+  <span class="text-yellow-300">setColor</span>(<span class="text-amber-300">0</span>, <span class="text-amber-300">0</span>, <span class="text-amber-300">255</span>); delay(<span class="text-amber-300">300</span>);
+}
+
+<span class="text-blue-400">void</span> <span class="text-yellow-300">loop</span>() {
+  <span class="text-blue-400">int</span> state = digitalRead(BOOT_BTN);
+  
+  <span class="text-purple-400">if</span> (state == LOW) {
+    <span class="text-slate-500">// Pulsante Premuto -> Viola Nexus (R:255, G:0, B:200)</span>
+    <span class="text-yellow-300">setColor</span>(<span class="text-amber-300">255</span>, <span class="text-amber-300">0</span>, <span class="text-amber-300">200</span>);
+  } <span class="text-purple-400">else</span> {
+    <span class="text-slate-500">// Stato Normale -> Verde SMT (R:0, G:255, B:120)</span>
+    <span class="text-yellow-300">setColor</span>(<span class="text-amber-300">0</span>, <span class="text-amber-300">255</span>, <span class="text-amber-300">120</span>);
+  }
+  delay(<span class="text-amber-300">50</span>);
+}</code></pre>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Legal Disclaimer Section ("AS IS") -->
+    <section class="py-12 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
+        <div class="glass-panel rounded-2xl p-6 border border-amber-500/20 bg-amber-500/5 relative overflow-hidden">
+            <div class="flex flex-col sm:flex-row items-start space-y-3 sm:space-y-0 sm:space-x-4">
+                <div class="w-10 h-10 rounded-xl bg-amber-500/20 text-amber-400 flex items-center justify-center flex-shrink-0 border border-amber-500/30 text-lg">
+                    <i class="fa-solid fa-triangle-exclamation"></i>
+                </div>
+                <div class="space-y-1">
+                    <h3 class="text-base font-bold text-amber-300">Tutela Legale & Avviso Prototipazione ("COSÌ COM'È" / AS IS)</h3>
+                    <p class="text-xs text-slate-300 leading-relaxed">
+                        Progetto fornito <span class="font-semibold text-white">"COSÌ COM'È" (AS IS)</span> a scopo didattico, di studio e di prototipazione. Trattandosi di un prototipo hardware non certificato, l'autore declina ogni responsabilità per costi di fabbricazione fisica, errori di assemblaggio, danni diretti o indiretti o malfunzionamenti derivanti dal suo utilizzo. Verificare sempre le specifiche dei componenti prima di inoltrare l'ordine di produzione SMT.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Discounted Pricing CTA Card -->
+    <section id="pricing" class="py-16 px-4 sm:px-6 lg:px-8 max-w-4xl mx-auto text-center">
+        <div class="glass-panel p-8 sm:p-12 rounded-3xl border border-brand-500/30 relative overflow-hidden shadow-2xl">
+            <div class="absolute -top-24 -right-24 w-60 h-60 bg-brand-500/20 rounded-full blur-3xl pointer-events-none"></div>
+
+            <div class="space-y-6 relative z-10">
+                <div class="inline-flex items-center space-x-2 px-3.5 py-1 rounded-full bg-emerald-500/20 text-emerald-300 text-xs font-bold uppercase tracking-wider border border-emerald-500/40">
+                    <i class="fa-solid fa-fire text-amber-400"></i>
+                    <span>OFFERTA LANCIO -33%</span>
+                </div>
+                
+                <h2 class="text-3xl sm:text-4xl font-extrabold text-white tracking-tight">
+                    Scarica i File di Progettazione NexusCore
+                </h2>
+
+                <p class="text-slate-400 text-sm max-w-xl mx-auto">
+                    Ottieni l'archivio Gerber pronto per l'ordinativo PCB, schemi PDF, distinta base BOM e coordinate Pick & Place CPL.
+                </p>
+
+                <!-- Discount Price Tag Display -->
+                <div class="flex items-center justify-center space-x-4 py-2">
+                    <span class="line-through text-slate-500 text-3xl font-medium">€14,99</span>
+                    <span class="text-5xl font-extrabold text-white tracking-tight">€9,99</span>
+                </div>
+
+                <div class="pt-2">
+                    <a id="card-buy-btn" href="#" target="_blank" rel="noopener" class="glow-button inline-flex items-center space-x-3 px-10 py-4 rounded-xl text-lg font-bold text-white">
+                        <i class="fa-solid fa-cart-shopping"></i>
+                        <span>Acquista il Pacchetto a €9,99</span>
+                    </a>
+                </div>
+
+                <div class="flex items-center justify-center space-x-6 text-xs text-slate-500 pt-4">
+                    <span class="flex items-center space-x-1.5"><i class="fa-solid fa-shield-halved text-emerald-400"></i> Download Sicuro via Gumroad</span>
+                    <span class="flex items-center space-x-1.5"><i class="fa-solid fa-bolt text-amber-400"></i> Consegna Istantanea</span>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="py-12 border-t border-white/10 text-center text-xs text-slate-500 space-y-4">
+        <div class="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div class="flex items-center space-x-2">
+                <i class="fa-solid fa-microchip text-brand-500"></i>
+                <span class="font-bold text-slate-300">NexusCore ESP32-S3</span>
+                <span>— Custom Hardware Design</span>
+            </div>
+
+            <p>© <span id="current-year"></span> NexusCore. Tutti i diritti riservati.</p>
+
+            <button id="footer-admin-link" class="text-slate-600 hover:text-slate-400 transition-colors">
+                <i class="fa-solid fa-lock text-[10px] mr-1"></i>Admin Link Settings
+            </button>
+        </div>
+    </footer>
+
+    <!-- JavaScript Logic & 3D Engine -->
+    <script>
+        document.getElementById('current-year').textContent = new Date().getFullYear();
+
+        // --- GUMROAD LINK MANAGER WITH PIN LOGIC ---
+        const DEFAULT_GUMROAD_URL = "https://gumroad.com/";
+        const ADMIN_PIN = "416310"; // Secret PIN
+
+        function getStoredGumroadUrl() {
+            return localStorage.getItem('nexuscore_gumroad_url') || DEFAULT_GUMROAD_URL;
+        }
+
+        function updateBuyButtons() {
+            const url = getStoredGumroadUrl();
+            document.querySelectorAll('#nav-buy-btn, #hero-buy-btn, #card-buy-btn').forEach(btn => {
+                btn.href = url;
+            });
+        }
+        updateBuyButtons();
+
+        // Modal Elements
+        const adminModal = document.getElementById('admin-modal');
+        const adminTriggerBtn = document.getElementById('admin-trigger-btn');
+        const footerAdminLink = document.getElementById('footer-admin-link');
+        const closeModalBtn = document.getElementById('close-modal-btn');
+        
+        const pinSection = document.getElementById('pin-section');
+        const settingsSection = document.getElementById('settings-section');
+        const pinInput = document.getElementById('pin-input');
+        const pinError = document.getElementById('pin-error');
+        const unlockBtn = document.getElementById('unlock-btn');
+        const gumroadUrlInput = document.getElementById('gumroad-url-input');
+        const saveUrlBtn = document.getElementById('save-url-btn');
+        const resetUrlBtn = document.getElementById('reset-url-btn');
+
+        function openAdminModal() {
+            adminModal.classList.remove('hidden');
+            pinSection.classList.remove('hidden');
+            settingsSection.classList.add('hidden');
+            pinInput.value = '';
+            pinError.classList.add('hidden');
+            pinInput.focus();
+        }
+
+        function closeAdminModal() {
+            adminModal.classList.add('hidden');
+        }
+
+        adminTriggerBtn.addEventListener('click', openAdminModal);
+        footerAdminLink.addEventListener('click', openAdminModal);
+        closeModalBtn.addEventListener('click', closeAdminModal);
+
+        unlockBtn.addEventListener('click', () => {
+            if (pinInput.value === ADMIN_PIN) {
+                pinSection.classList.add('hidden');
+                settingsSection.classList.remove('hidden');
+                gumroadUrlInput.value = getStoredGumroadUrl();
+            } else {
+                pinError.classList.remove('hidden');
+            }
+        });
+
+        saveUrlBtn.addEventListener('click', () => {
+            const newUrl = gumroadUrlInput.value.trim();
+            if (newUrl) {
+                localStorage.setItem('nexuscore_gumroad_url', newUrl);
+                updateBuyButtons();
+                closeAdminModal();
+            }
+        });
+
+        resetUrlBtn.addEventListener('click', () => {
+            localStorage.removeItem('nexuscore_gumroad_url');
+            updateBuyButtons();
+            closeAdminModal();
+        });
+
+
+        // --- THREE.JS PCB INTERACTIVE 3D VIEWER ---
+        const canvas = document.getElementById('pcb-canvas');
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x050507);
+
+        const camera = new THREE.PerspectiveCamera(45, canvas.clientWidth / canvas.clientHeight, 0.1, 1000);
+        camera.position.set(0, 12, 12);
+
+        const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
+        renderer.setSize(canvas.clientWidth, canvas.clientHeight);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        renderer.shadowMap.enabled = true;
+        renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+
+        const controls = new THREE.OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;
+        controls.dampingFactor = 0.05;
+        controls.maxPolarAngle = Math.PI / 2 + 0.1;
+
+        // Lighting
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.8);
+        scene.add(ambientLight);
+
+        const dirLight1 = new THREE.DirectionalLight(0xffffff, 1.2);
+        dirLight1.position.set(10, 20, 10);
+        dirLight1.castShadow = true;
+        scene.add(dirLight1);
+
+        const dirLight2 = new THREE.DirectionalLight(0x6366f1, 0.6);
+        dirLight2.position.set(-10, -10, -10);
+        scene.add(dirLight2);
+
+        // --- PCB BOARD GROUP ---
+        const pcbGroup = new THREE.Group();
+        scene.add(pcbGroup);
+
+        // Green PCB Base
+        const pcbWidth = 10;
+        const pcbHeight = 0.3;
+        const pcbDepth = 5;
+
+        const pcbMaterial = new THREE.MeshStandardMaterial({
+            color: 0x0e6231, // SMT Green Solder Mask
+            roughness: 0.3,
+            metalness: 0.1
+        });
+
+        const pcbGeometry = new THREE.BoxGeometry(pcbWidth, pcbHeight, pcbDepth);
+        const pcbBoard = new THREE.Mesh(pcbGeometry, pcbMaterial);
+        pcbBoard.receiveShadow = true;
+        pcbBoard.castShadow = true;
+        pcbGroup.add(pcbBoard);
+
+        // PCB Dark Circuit Traces Overlay
+        const traceMat = new THREE.MeshBasicMaterial({ color: 0x083d1e });
+        const traceGroup = new THREE.Group();
+        
+        const t1 = new THREE.Mesh(new THREE.BoxGeometry(7, 0.01, 0.15), traceMat);
+        t1.position.set(-0.5, 0.16, -1.2);
+        traceGroup.add(t1);
+
+        const t2 = new THREE.Mesh(new THREE.BoxGeometry(0.15, 0.01, 2.5), traceMat);
+        t2.position.set(2, 0.16, 0.2);
+        traceGroup.add(t2);
+
+        const t3 = new THREE.Mesh(new THREE.BoxGeometry(4, 0.01, 0.15), traceMat);
+        t3.position.set(1, 0.16, 1.4);
+        traceGroup.add(t3);
+
+        pcbGroup.add(traceGroup);
+
+        // Mounting Holes
+        const holeGeo = new THREE.CylinderGeometry(0.2, 0.2, 0.35, 16);
+        const holeMat = new THREE.MeshStandardMaterial({ color: 0xd4af37, metalness: 0.9, roughness: 0.2 });
+
+        const holePositions = [[-4.5, -2], [4.5, -2], [-4.5, 2], [4.5, 2]];
+        holePositions.forEach(([x, z]) => {
+            const hole = new THREE.Mesh(holeGeo, holeMat);
+            hole.position.set(x, 0, z);
+            pcbGroup.add(hole);
+        });
+
+        // SINGLE ROW TOP PIN HEADERS (16 Pins along top edge z = -2.1)
+        const headerGroup = new THREE.Group();
+        const pinBaseMat = new THREE.MeshStandardMaterial({ color: 0x111111, roughness: 0.8 });
+        const pinGoldMat = new THREE.MeshStandardMaterial({ color: 0xffd700, metalness: 0.9, roughness: 0.1 });
+
+        const pinCount = 16;
+        const pinSpacing = 0.5;
+        const startX = -((pinCount - 1) * pinSpacing) / 2;
+
+        for (let i = 0; i < pinCount; i++) {
+            const px = startX + i * pinSpacing;
+            const pz = -2.1;
+
+            const baseGeo = new THREE.BoxGeometry(0.45, 0.4, 0.45);
+            const pinBase = new THREE.Mesh(baseGeo, pinBaseMat);
+            pinBase.position.set(px, 0.3, pz);
+            headerGroup.add(pinBase);
+
+            const pinGeo = new THREE.BoxGeometry(0.12, 1.4, 0.12);
+            const pin = new THREE.Mesh(pinGeo, pinGoldMat);
+            pin.position.set(px, 0.8, pz);
+            pin.castShadow = true;
+            headerGroup.add(pin);
+        }
+        pcbGroup.add(headerGroup);
+
+        // USB-C Connector (Left Side x = -4.5)
+        const usbGroup = new THREE.Group();
+        const usbMetalMat = new THREE.MeshStandardMaterial({ color: 0xcccccc, metalness: 0.95, roughness: 0.1 });
+        const usbInnerMat = new THREE.MeshStandardMaterial({ color: 0x050505 });
+
+        const usbOuter = new THREE.Mesh(new THREE.BoxGeometry(1.4, 0.45, 1.1), usbMetalMat);
+        usbOuter.position.set(-4.5, 0.35, 0);
+        usbGroup.add(usbOuter);
+
+        const usbHole = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.25, 0.8), usbInnerMat);
+        usbHole.position.set(-5.15, 0.35, 0);
+        usbGroup.add(usbHole);
+        pcbGroup.add(usbGroup);
+
+        // ESP32-S3 Microcontroller Chip (Center x = 0, z = 0.2)
+        const chipGroup = new THREE.Group();
+        const chipMat = new THREE.MeshStandardMaterial({ color: 0x1a1a1a, metalness: 0.3, roughness: 0.6 });
+        const chipBody = new THREE.Mesh(new THREE.BoxGeometry(2.4, 0.25, 2.4), chipMat);
+        chipBody.position.set(0, 0.28, 0.2);
+        chipGroup.add(chipBody);
+
+        const labelMat = new THREE.MeshStandardMaterial({ color: 0x222222, metalness: 0.8, roughness: 0.3 });
+        const labelPlate = new THREE.Mesh(new THREE.BoxGeometry(2.0, 0.02, 2.0), labelMat);
+        labelPlate.position.set(0, 0.41, 0.2);
+        chipGroup.add(labelPlate);
+        pcbGroup.add(chipGroup);
+
+        // BOOT & RESET Tactile Micro Buttons
+        function createButton(x, z) {
+            const btnG = new THREE.Group();
+            const base = new THREE.Mesh(
+                new THREE.BoxGeometry(0.6, 0.2, 0.6),
+                new THREE.MeshStandardMaterial({ color: 0xaaaaaa, metalness: 0.8 })
+            );
+            base.position.set(x, 0.25, z);
+            btnG.add(base);
+
+            const cap = new THREE.Mesh(
+                new THREE.CylinderGeometry(0.18, 0.18, 0.15, 16),
+                new THREE.MeshStandardMaterial({ color: 0x222222 })
+            );
+            cap.position.set(x, 0.38, z);
+            btnG.add(cap);
+            return btnG;
+        }
+
+        pcbGroup.add(createButton(-2.2, 1.2));
+        pcbGroup.add(createButton(-2.2, -0.8));
+
+        // 3 RESISTORS NEAR LED (R1, R3, R5)
+        const resMat = new THREE.MeshStandardMaterial({ color: 0x151515 });
+        const resCapMat = new THREE.MeshStandardMaterial({ color: 0xd4af37, metalness: 0.9 });
+
+        function createSMDResistor(x, z) {
+            const resG = new THREE.Group();
+            const body = new THREE.Mesh(new THREE.BoxGeometry(0.35, 0.12, 0.2), resMat);
+            body.position.set(x, 0.22, z);
+            resG.add(body);
+
+            const c1 = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.13, 0.21), resCapMat);
+            c1.position.set(x - 0.15, 0.22, z);
+            resG.add(c1);
+
+            const c2 = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.13, 0.21), resCapMat);
+            c2.position.set(x + 0.15, 0.22, z);
+            resG.add(c2);
+            return resG;
+        }
+
+        pcbGroup.add(createSMDResistor(2.2, 1.2)); // R1
+        pcbGroup.add(createSMDResistor(2.2, 0.5)); // R3
+        pcbGroup.add(createSMDResistor(2.2, -0.2)); // R5
+
+        // PROGRAMMABLE RGB LED DOME & LIGHT
+        const ledGroup = new THREE.Group();
+        const ledX = 3.5;
+        const ledZ = 0.5;
+
+        const ledPad = new THREE.Mesh(
+            new THREE.CylinderGeometry(0.4, 0.4, 0.05, 16),
+            new THREE.MeshStandardMaterial({ color: 0xdddddd, metalness: 0.9 })
+        );
+        ledPad.position.set(ledX, 0.18, ledZ);
+        ledGroup.add(ledPad);
+
+        const ledMaterial = new THREE.MeshPhysicalMaterial({
+            color: 0xff0055,
+            emissive: 0xff0055,
+            emissiveIntensity: 0.8,
+            transparent: true,
+            opacity: 0.85,
+            roughness: 0.1,
+            transmission: 0.6
+        });
+
+        const ledDome = new THREE.Mesh(
+            new THREE.SphereGeometry(0.32, 24, 24, 0, Math.PI * 2, 0, Math.PI / 2),
+            ledMaterial
+        );
+        ledDome.position.set(ledX, 0.22, ledZ);
+        ledGroup.add(ledDome);
+
+        const ledPointLight = new THREE.PointLight(0xff0055, 2, 8);
+        ledPointLight.position.set(ledX, 0.5, ledZ);
+        ledGroup.add(ledPointLight);
+
+        pcbGroup.add(ledGroup);
+
+        // INTERACTIVE LED COLOR CONTROLS
+        const colorPicker = document.getElementById('led-color-picker');
+        const intensitySlider = document.getElementById('led-intensity-slider');
+        const colorCodeText = document.getElementById('led-color-code');
+        const intensityValText = document.getElementById('led-intensity-val');
+
+        function updateLEDColor(hex) {
+            const color = new THREE.Color(hex);
+            ledMaterial.color = color;
+            ledMaterial.emissive = color;
+            ledPointLight.color = color;
+            colorCodeText.textContent = hex.toUpperCase();
+            colorPicker.value = hex;
+        }
+
+        colorPicker.addEventListener('input', (e) => updateLEDColor(e.target.value));
+
+        document.querySelectorAll('.led-preset-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const hex = btn.getAttribute('data-color');
+                updateLEDColor(hex);
+            });
+        });
+
+        intensitySlider.addEventListener('input', (e) => {
+            const val = parseFloat(e.target.value);
+            ledMaterial.emissiveIntensity = val * 0.8;
+            ledPointLight.intensity = val * 2;
+            intensityValText.textContent = Math.round(val * 100) + '%';
+        });
+
+        // CAMERA PRESETS & AUTO ROTATION
+        let isAutoRotating = true;
+
+        document.getElementById('toggle-rotate').addEventListener('click', function() {
+            isAutoRotating = !isAutoRotating;
+            this.classList.toggle('text-brand-400', isAutoRotating);
+            this.classList.toggle('text-slate-400', !isAutoRotating);
+        });
+
+        function animateCameraTo(targetPos, targetLookAt) {
+            isAutoRotating = false;
+            document.getElementById('toggle-rotate').classList.replace('text-brand-400', 'text-slate-400');
+            
+            const startPos = camera.position.clone();
+            const startTarget = controls.target.clone();
+            let progress = 0;
+
+            function step() {
+                progress += 0.04;
+                if (progress <= 1) {
+                    camera.position.lerpVectors(startPos, targetPos, progress);
+                    controls.target.lerpVectors(startTarget, targetLookAt, progress);
+                    controls.update();
+                    requestAnimationFrame(step);
+                }
+            }
+            step();
+        }
+
+        document.getElementById('view-top').addEventListener('click', () => {
+            animateCameraTo(new THREE.Vector3(0, 14, 0.01), new THREE.Vector3(0, 0, 0));
+        });
+
+        document.getElementById('view-usb').addEventListener('click', () => {
+            animateCameraTo(new THREE.Vector3(-10, 3, 0), new THREE.Vector3(-4, 0, 0));
+        });
+
+        document.getElementById('view-chip').addEventListener('click', () => {
+            animateCameraTo(new THREE.Vector3(0, 5, 4), new THREE.Vector3(0, 0, 0));
+        });
+
+        document.getElementById('view-led').addEventListener('click', () => {
+            animateCameraTo(new THREE.Vector3(5, 3, 3), new THREE.Vector3(3.2, 0.3, 0.5));
+        });
+
+        // RENDER LOOP
+        function animate() {
+            requestAnimationFrame(animate);
+
+            if (isAutoRotating) {
+                pcbGroup.rotation.y += 0.006;
+            }
+
+            controls.update();
+            renderer.render(scene, camera);
+        }
+
+        window.addEventListener('resize', () => {
+            const width = canvas.clientWidth;
+            const height = canvas.clientHeight;
+            camera.aspect = width / height;
+            camera.updateProjectionMatrix();
+            renderer.setSize(width, height);
+        });
+
+        animate();
+
+        // COPY CODE TO CLIPBOARD
+        const copyCodeBtn = document.getElementById('copy-code-btn');
+        const copyText = document.getElementById('copy-text');
+
+        copyCodeBtn.addEventListener('click', () => {
+            const rawCode = `
+#define LED_R_PIN   4    // GPIO Canale Rosso (attraverso R1)
+#define LED_G_PIN   5    // GPIO Canale Verde (attraverso R3)
+#define LED_B_PIN   6    // GPIO Canale Blu (attraverso R5)
+#define BOOT_BTN    0    // GPIO Pulsante BOOT Tattile
+
+const bool COMMON_ANODE = false;
+
+void setColor(uint8_t r, uint8_t g, uint8_t b) {
+  if (COMMON_ANODE) {
+    r = 255 - r;
+    g = 255 - g;
+    b = 255 - b;
+  }
+  analogWrite(LED_R_PIN, r);
+  analogWrite(LED_G_PIN, g);
+  analogWrite(LED_B_PIN, b);
+}
+
+void setup() {
+  Serial.begin(115200);
+  pinMode(BOOT_BTN, INPUT_PULLUP);
+  
+  pinMode(LED_R_PIN, OUTPUT);
+  pinMode(LED_G_PIN, OUTPUT);
+  pinMode(LED_B_PIN, OUTPUT);
+  
+  setColor(255, 0, 0); delay(300);
+  setColor(0, 255, 0); delay(300);
+  setColor(0, 0, 255); delay(300);
+}
+
+void loop() {
+  int state = digitalRead(BOOT_BTN);
+  
+  if (state == LOW) {
+    setColor(255, 0, 200);
+  } else {
+    setColor(0, 255, 120);
+  }
+  delay(50);
+}`.trim();
+
+            const tempTextArea = document.createElement('textarea');
+            tempTextArea.value = rawCode;
+            document.body.appendChild(tempTextArea);
+            tempTextArea.select();
+            document.execCommand('copy');
+            document.body.removeChild(tempTextArea);
+
+            copyText.textContent = "Copiato!";
+            copyCodeBtn.classList.add('text-emerald-400');
+            setTimeout(() => {
+                copyText.textContent = "Copia Codice";
+                copyCodeBtn.classList.remove('text-emerald-400');
+            }, 2000);
+        });
+    </script>
+</body>
+</html>
